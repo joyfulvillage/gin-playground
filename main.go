@@ -66,6 +66,23 @@ type SplitController struct {
  */
 func main() {
 
+	/*
+	   //needs to import "os"
+	   //consume args[1] as amount parameter
+	   amount := os.Args[1]
+	   amountF64, err := strconv.ParseFloat(amount, 64)
+	   if err != nil {
+	       sc.logger.Infow("Invalid amount",
+	            "value", amount,
+	       )
+	       fmt.Println(err)
+	   }
+	   coinbaseClient := &CoinbaseClient{rateUrl: "https://api.coinbase.com/v2/exchange-rates"}
+	   response := coinbaseClient.getSpending(amountF64)
+	   res, _ := json.Marshal(response)
+	   fmt.Println(string(res))
+	*/
+
 	//switch env based on env
 	logger, err := zap.NewProduction()
 	if err != nil {

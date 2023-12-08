@@ -2,4 +2,4 @@
 Gin-Playground
 ==============
 
-A simply repo to play around go web framework 
+A simple repo to play around go web framework 

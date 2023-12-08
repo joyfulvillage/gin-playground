@@ -26,6 +26,8 @@ func TestClientGetRates(t *testing.T) {
 	mockRates := &CoinbaseRates{
 		Data: data,
 	}
+
+	// should add a negative test, didn't see unmarshal throwing correct error when seeing malfunctional json
 	testTable := []struct {
 		name             string
 		server           *httptest.Server
@@ -129,6 +131,7 @@ func TestController(t *testing.T) {
 /*
 
 //Test on backend level, similar idea, skipped for demo
+//mocking client, testing backend calculation (business logic), provide different config
 func TestGetSpending(t *testing.T){
 }
 */

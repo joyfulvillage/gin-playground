@@ -10,6 +10,7 @@ import (
 	"strconv"
 )
 
+// payload can be moved to other module
 // Coinbase API payload
 type Rates struct {
 	Btc string `json:"BTC"`
@@ -39,10 +40,12 @@ type SpendingResponse struct {
 	Thirty  Spending `json:"30%"`
 }
 
+// experimenting implementation without class: controller -> backend -> backing system layers, easier to test
 type CoinbaseClient struct {
 	rateUrl string
 }
 
+// cake pattern on stacking dependency
 type SplitController struct {
 	logger *zap.SugaredLogger
 	client *CoinbaseClient
@@ -51,12 +54,15 @@ type SplitController struct {
 //field has to start with Capital, otherwise, json.marshal cannot recognize, bug?
 
 /*
-* use Viper to move magic number to config
+* use Viper to move magic number to config, 12 factor app
+* move url to config
+* Gracefully handling server crash: verbase logging, defer closing on resources clean up
 * basic authentication on header or ID injection, return 401
 * Switch on/off debug mode with header to expose 500 internal error for debugging purposes
 * having string over float64, in case rounding issue
 * integration of SDK for metrics collection
 * abstract PORT to env var
+* Chao engineering, special action, based on header
  */
 func main() {
 
@@ -82,15 +88,18 @@ func main() {
 	router.Run("localhost:8080")
 }
 
+// basic setup of server, route, simplification for testing purposes
 func setupRouter(controller *SplitController) *gin.Engine {
 
 	r := gin.Default()
+	// pretty bad route name, just for demo
 	r.GET("/73split", controller.splitHandler)
 
 	return r
 }
 
 // get spiltHandler returns the split on input amount to buy BTC and ETH
+// logging in Json for ELK filtering, e.g. group by invalid amount, and then value
 func (sc *SplitController) splitHandler(c *gin.Context) {
 	amount := c.Query("amount")
 
@@ -102,6 +111,8 @@ func (sc *SplitController) splitHandler(c *gin.Context) {
 		c.JSON(400, gin.H{"code": 400, "message": "Not a valid amount: " + amount})
 	}
 
+	// hiding internal error stack for security reason
+	// however, we can extend to have a switch on/off to expose, for debugging purposes
 	resp, sErr := sc.client.getSpending(amountF64)
 	if sErr != nil {
 		sc.logger.Error(sErr)
@@ -114,12 +125,16 @@ func (sc *SplitController) splitHandler(c *gin.Context) {
 // refactor from passing pointer to return a pointer, for unit testing
 func (client *CoinbaseClient) getSpending(amount float64) (*SpendingResponse, error) {
 
+	//have these magic number and variable to be renamed and moved to config
 	seventyPct := amount * 70 / 100
 	thirtyPct := amount * 30 / 100
 
 	coinRates, err := client.getRates(client.rateUrl)
+	//optional to log this message, as may duplicated in bubbled up error message
 	if err != nil {
 		fmt.Println(err)
+		//missed out a return
+		//return nil, err
 	}
 
 	//assume rate from coinbase are always good in schema
@@ -145,6 +160,8 @@ func (client *CoinbaseClient) getSpending(amount float64) (*SpendingResponse, er
 *  - concurrency with goroutines, channels, futures
 *  - caching, have a scheduled puller on rate, in memory vs memcached
 *  - make url configurable
+*  code generation from API
+*  refactor to pass in URL as parameter, for unit testing purposes
  */
 func (client *CoinbaseClient) getRates(url string) (*CoinbaseRates, error) {
 	resp, err := http.Get(url)
@@ -159,6 +176,7 @@ func (client *CoinbaseClient) getRates(url string) (*CoinbaseRates, error) {
 		return nil, ioErr
 	}
 
+	//bad var naming...
 	m := &CoinbaseRates{}
 
 	//fail to parse do not throw error?
